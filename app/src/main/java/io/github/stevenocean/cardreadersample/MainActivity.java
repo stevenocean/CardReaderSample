@@ -71,6 +71,16 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
         mNfcAdapter.disableReaderMode(this);
     }
 
+    // self-defined APDU
+    public static final String STATUS_SUCCESS = "9000";
+    public static final String STATUS_FAILED = "6F00";
+    public static final String CLA_NOT_SUPPORTED = "6E00";
+    public static final String INS_NOT_SUPPORTED = "6D00";
+    public static final String AID = "A0000002471001";
+    public static final String LC = "07";
+    public static final String SELECT_INS = "A4";
+    public static final String DEFAULT_CLA = "00";
+
     @Override
     public void onTagDiscovered(Tag tag) {
 
@@ -81,18 +91,21 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
         IsoDep isoDep = IsoDep.get(tag);
         try {
             isoDep.connect();
-            byte [] resp = isoDep.transceive(hexStringToByteArray("00A4040007A0000002471001"));
-            cardResp.append(encodeHexString(resp, true));
+            byte [] resp = isoDep.transceive(hexStringToByteArray(DEFAULT_CLA + SELECT_INS + "0400" + LC + AID));
+            String respStatus = encodeHexString(resp, true);
+            if (respStatus.equals(STATUS_SUCCESS)) {
+                cardResp.append("Success response");
+            } else {
+                cardResp.append("Failed response, code:").append(respStatus);
+            }
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     mNfcInfoText.setText(cardResp.toString());
                 }
             });
-
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Try again and keep card emulator phone below device", Toast.LENGTH_LONG).show();
         }
     }
 
