@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
         try {
             isoDep.connect();
             byte [] resp = isoDep.transceive(hexStringToByteArray("00A4040007A0000002471001"));
-            cardResp.append(encodeHexString(resp));
+            cardResp.append(encodeHexString(resp, true));
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
 
         // Id
         if (extraId != null) {
-            nfcInfo.append("ID (hex): ").append(encodeHexString(extraId)).append("\n");
+            nfcInfo.append("ID (hex): ").append(encodeHexString(extraId, false)).append("\n");
         }
 
         // Tag info
@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
                             for (int j = 0; j < mfc.getBlockCountInSector(i); ++j) {
                                 byte[] blockData = mfc.readBlock(blockIndex+j);
                                 sectorCheck.append("  Block <").append(blockIndex+j).append("> ")
-                                        .append(encodeHexString(blockData)).append("\n");
+                                        .append(encodeHexString(blockData, false)).append("\n");
                             }
 
                         } else if (mfc.authenticateSectorWithKeyB(i, MifareClassic.KEY_DEFAULT)) {
@@ -181,7 +181,7 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
                             for (int j = 0; j < mfc.getBlockCountInSector(i); ++j) {
                                 byte[] blockData = mfc.readBlock(blockIndex+j);
                                 sectorCheck.append("  Block <").append(blockIndex+j).append("> ")
-                                        .append(encodeHexString(blockData)).append("\n");
+                                        .append(encodeHexString(blockData, false)).append("\n");
                             }
                         } else {
                             sectorCheck.append("Sector <").append(i).append("> auth failed\n");
@@ -262,17 +262,23 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
         mNfcInfoText.setText(nfcInfo.toString());
     }
 
-    private String byteToHex(byte num) {
+    public static String byteToHex(byte num, boolean upper) {
         char[] hexDigits = new char[2];
-        hexDigits[0] = Character.forDigit((num >> 4) & 0xF, 16);
-        hexDigits[1] = Character.forDigit((num & 0xF), 16);
+        if (upper) {
+            hexDigits[0] = Character.toUpperCase(Character.forDigit((num >> 4) & 0xF, 16));
+            hexDigits[1] = Character.toUpperCase(Character.forDigit((num & 0xF), 16));
+        } else {
+            hexDigits[0] = Character.forDigit((num >> 4) & 0xF, 16);
+            hexDigits[1] = Character.forDigit((num & 0xF), 16);
+        }
+
         return new String(hexDigits);
     }
 
-    private String encodeHexString(byte[] byteArray) {
+    public static String encodeHexString(byte[] byteArray, boolean upper) {
         StringBuilder hexStringBuffer = new StringBuilder();
         for (byte aByteArray : byteArray) {
-            hexStringBuffer.append(byteToHex(aByteArray));
+            hexStringBuffer.append(byteToHex(aByteArray, upper));
         }
         return hexStringBuffer.toString();
     }
@@ -286,6 +292,4 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Reader
         }
         return data;
     }
-
-
 }
