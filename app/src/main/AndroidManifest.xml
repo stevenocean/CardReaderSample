@@ -23,9 +23,6 @@
             <meta-data
                 android:name="android.nfc.action.TECH_DISCOVERED"
                 android:resource="@xml/nfc_tech_filter" />
-            <intent-filter>
-                <action android:name="android.nfc.action.TAG_DISCOVERED"/>
-            </intent-filter>
         </activity>
     </application>
 

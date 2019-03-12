@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements NfcAdapter.ReaderCallback {
 
     private NfcAdapter mNfcAdapter;
     private TextView mNfcInfoText;
@@ -57,14 +57,53 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mNfcAdapter.enableReaderMode(this, this,
+                NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+                null);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mNfcAdapter.disableReaderMode(this);
+    }
+
+    @Override
+    public void onTagDiscovered(Tag tag) {
+
+        // Card response for IsoDep
+        final StringBuilder cardResp = new StringBuilder("Card response: \n");
+
+        // read card data of CardEmulator
+        IsoDep isoDep = IsoDep.get(tag);
+        try {
+            isoDep.connect();
+            byte [] resp = isoDep.transceive(hexStringToByteArray("00A4040007A0000002471001"));
+            cardResp.append(encodeHexString(resp));
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mNfcInfoText.setText(cardResp.toString());
+                }
+            });
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Try again and keep card emulator phone below device", Toast.LENGTH_LONG).show();
+        }
+    }
+
     private void processIntent(Intent intent) {
 
         if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(intent.getAction())) {
             Toast.makeText(this, "ACTION_TECH_DISCOVERED", Toast.LENGTH_LONG).show();
-        } else if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(intent.getAction())) {
-            Toast.makeText(this, "ACTION_TAG_DISCOVERED", Toast.LENGTH_LONG).show();
+        } else if (Intent.ACTION_MAIN.equals(intent.getAction())) {
+            return;
         } else {
-            Toast.makeText(this, "Invalid action", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Invalid action - " + intent.getAction(), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -90,9 +129,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Sector check
         StringBuilder sectorCheck = new StringBuilder("Sector check: \n");
-
-        // Card response for IsoDep
-        StringBuilder cardResp = new StringBuilder("Card response: \n");
 
         int idx = 0;
         for (String tech : tag.getTechList()) {
@@ -171,17 +207,6 @@ public class MainActivity extends AppCompatActivity {
                         cardType.append("Unknown");
                         break;
                 }
-            } else if (tech.equals(IsoDep.class.getName())) {
-                // read card data of CardEmulator
-                IsoDep isoDep = IsoDep.get(tag);
-                try {
-                    isoDep.connect();
-                    byte [] resp = isoDep.transceive(hexStringToByteArray("00A4040007A0000002471002"));
-                    cardResp.append(encodeHexString(resp));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Try again and keep card emulator phone below device", Toast.LENGTH_LONG).show();
-                }
             }
 
             String [] techPkgFields = tech.split("\\.");
@@ -196,8 +221,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         nfcInfo.append("\n").append(technologiesAvailable).append("\n")
-                .append("\n").append(cardType).append("\n")
-                .append("\n").append(cardResp).append("\n");
+                .append("\n").append(cardType).append("\n");
 
         // NDEF Messages
         StringBuilder sbNdefMessages = new StringBuilder("NDEF Messages: \n");
@@ -262,5 +286,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return data;
     }
+
 
 }
